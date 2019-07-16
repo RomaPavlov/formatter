@@ -24,9 +24,16 @@ class Formatter
     end
 
     def format_string
-      decode_abbreviations if @str.include?('Twp' || 'Hwy')
+      ['twp', 'hwy'].any? { |word| decode_abbreviations if @str.downcase.include?(word) }
       delete_slashes
+      capitalize_parentheses if @str.include?('(')
       delete_duplicates
+    end
+
+    def capitalize_parentheses
+      ary = @str.split('(')
+      capitalized = ary[1].split(' ').map(&:capitalize).join(' ')
+      @str = ary.shift(1).push(capitalized).join('(')
     end
 
     def decode_abbreviations
@@ -35,7 +42,7 @@ class Formatter
 
     def delete_slashes
       return if WRONG_VALUES.any? { |word| @str.include?(word) } || @str.length.zero?
-      strings_array = @str.split(/\//)
+      strings_array = @str.split(/\//).reject { |e| e.to_s.empty? }
       # Delete dots if they are in the end of phrase
       strings_array.each {|str| delete_periods(str) if str.include? '.'}
       substrings = to_parentheses(strings_array)
@@ -73,7 +80,9 @@ class Formatter
 
     def string_with_parentheses(string)
       str = string.split(',')
-      "#{str[0].downcase} (#{str[1].split.map(&:capitalize).join(' ') if str[1].present?})"
+      # if comma is the last symbol of substring
+      return "#{str[0].downcase}" if str.length == 1
+      "#{str[0].downcase} (#{str[1].split.map(&:capitalize).join(' ') if str[1]})"
     end
 
     def insert(id, clean_name, sentence)
